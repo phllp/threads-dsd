@@ -375,6 +375,6 @@ C:/Users/phllp/Desktop/T2 DSD/katchau/mainwindow.h
  mdp:C:/Qt/Tools/mingw1310_64/x86_64-w64-mingw32/include/wchar.h
  mdp:C:/Users/phllp/Desktop/T2 DSD/katchau/build/Desktop_Qt_6_9_2_MinGW_64_bit-Debug/katchau_autogen/moc_predefs.h
  mdp:C:/Users/phllp/Desktop/T2 DSD/katchau/mainwindow.h
+C:/Users/phllp/Desktop/T2 DSD/katchau/main.cpp
 C:/Users/phllp/Desktop/T2 DSD/katchau/mainwindow.cpp
  uic:./ui_mainwindow.h
-C:/Users/phllp/Desktop/T2 DSD/katchau/main.cpp
