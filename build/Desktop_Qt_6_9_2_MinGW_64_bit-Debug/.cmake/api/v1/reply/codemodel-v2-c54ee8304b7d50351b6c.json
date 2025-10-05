@@ -1,0 +1,79 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-845760148288ee94bf68.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "katchau",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "katchau::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-katchau-Debug-20ff92cc95f4e9e7cea6.json",
+					"name" : "katchau",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "katchau_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-katchau_autogen-Debug-2f75b5b7d767dbb25187.json",
+					"name" : "katchau_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "katchau_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-katchau_autogen_timestamp_deps-Debug-5a21fa6643a5fe44fa6c.json",
+					"name" : "katchau_autogen_timestamp_deps",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/phllp/Desktop/T2 DSD/katchau/build/Desktop_Qt_6_9_2_MinGW_64_bit-Debug",
+		"source" : "C:/Users/phllp/Desktop/T2 DSD/katchau"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}
