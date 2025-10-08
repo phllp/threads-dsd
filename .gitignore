@@ -1,82 +1,1 @@
-# This file is used to ignore files which are generated
-# ----------------------------------------------------------------------------
-
-*~
-*.autosave
-*.a
-*.core
-*.moc
-*.o
-*.obj
-*.orig
-*.rej
-*.so
-*.so.*
-*_pch.h.cpp
-*_resource.rc
-*.qm
-.#*
-*.*#
-core
-!core/
-tags
-.DS_Store
-.directory
-*.debug
-Makefile*
-*.prl
-*.app
-moc_*.cpp
-ui_*.h
-qrc_*.cpp
-Thumbs.db
-*.res
-*.rc
-/.qmake.cache
-/.qmake.stash
-
-# qtcreator generated files
-*.pro.user*
-*.qbs.user*
-CMakeLists.txt.user*
-
-# xemacs temporary files
-*.flc
-
-# Vim temporary files
-.*.swp
-
-# Visual Studio generated files
-*.ib_pdb_index
-*.idb
-*.ilk
-*.pdb
-*.sln
-*.suo
-*.vcproj
-*vcproj.*.*.user
-*.ncb
-*.sdf
-*.opensdf
-*.vcxproj
-*vcxproj.*
-
-# MinGW generated files
-*.Debug
-*.Release
-
-# Python byte code
-*.pyc
-
-# Binaries
-# --------
-*.dll
-*.exe
-
-# Directories with generated files
-.moc/
-.obj/
-.pch/
-.rcc/
-.uic/
-/build*/
+.gradlebuild/!gradle/wrapper/gradle-wrapper.jar!**/src/main/**/build/!**/src/test/**/build/### IntelliJ IDEA ###.idea/modules.xml.idea/jarRepositories.xml.idea/compiler.xml.idea/libraries/*.iws*.iml*.iprout/!**/src/main/**/out/!**/src/test/**/out/### Eclipse ###.apt_generated.classpath.factorypath.project.settings.springBeans.sts4-cachebin/!**/src/main/**/bin/!**/src/test/**/bin/### NetBeans ###/nbproject/private//nbbuild//dist//nbdist//.nb-gradle/### VS Code ###.vscode/### Mac OS ###.DS_Store
