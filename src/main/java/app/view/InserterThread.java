@@ -1,5 +1,6 @@
 package app.view;
 
+import app.core.CellLockGridSemaphore;
 import app.model.Car;
 import app.model.RowSegment;
 
@@ -11,6 +12,8 @@ import java.util.function.Supplier;
 public class InserterThread extends Thread {
     private final int[][] grid;
     private final SimulationState sim;
+    private final CellLockGridSemaphore locks;
+
     private final IntSupplier maxCarsSupplier;              // spnMaxVeiculos::getValue
     private final IntSupplier minInsertMsSupplier;          // spnIntervaloMs::getValue
     private final Supplier<RowSegment> RowsegmentSupplier;  // findRandomEdgeRowSegment()
@@ -25,11 +28,14 @@ public class InserterThread extends Thread {
 
     public InserterThread(int[][] grid,
                           SimulationState sim,
+                          CellLockGridSemaphore locks,
                           IntSupplier maxCarsSupplier,
                           IntSupplier minInsertMsSupplier,
                           IntSupplier carStepMsSupplier,
                           Supplier<RowSegment> RowsegmentSupplier) {
-        this.grid = grid; this.sim = sim;
+        this.grid = grid;
+        this.sim = sim;
+        this.locks = locks;
         this.maxCarsSupplier = maxCarsSupplier;
         this.minInsertMsSupplier = minInsertMsSupplier;
         this.carStepMsSupplier = carStepMsSupplier;
@@ -75,7 +81,17 @@ public class InserterThread extends Thread {
                     if (seg != null) {
                         int step = carStepMsSupplier.getAsInt();
 
-                        Car v = new Car(sim, grid, seg.getR0(), seg.getC0(), seg.getR1(), seg.getC1(), step, seg.getDirection());
+                        Car v = new Car(
+                                sim,
+                                grid,
+                                locks,
+                                seg.getR0(),
+                                seg.getC0(),
+                                seg.getR1(),
+                                seg.getC1(),
+                                step,
+                                seg.getDirection()
+                        );
 
                         v.start();
                         synchronized (spawned) {

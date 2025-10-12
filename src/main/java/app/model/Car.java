@@ -1,10 +1,12 @@
 package app.model;
 
+import app.core.CellLockGridSemaphore;
 import app.model.enums.Direction;
 import app.view.SimulationState;
 
 public class Car extends Thread {
     private final SimulationState simState;
+    private final CellLockGridSemaphore locks;
     private final int[][] grid;
     private final int stepMs;
 
@@ -19,6 +21,7 @@ public class Car extends Thread {
 
     public Car(SimulationState simState,
                int[][] grid,
+               CellLockGridSemaphore locks,
                int row,
                int startCol,
                int endRow,
@@ -27,6 +30,7 @@ public class Car extends Thread {
                Direction dir) {
         this.simState = simState;
         this.grid = grid;
+        this.locks = locks;
         this.row = row;
         this.col = startCol;
         this.endRow = endRow;
@@ -50,20 +54,39 @@ public class Car extends Thread {
 
     @Override
     public void run() {
-        simState.onSpawn(getId(), row, col);
-
         try {
+            // Segura a célula inicial (bloqueante).
+            locks.acquire(row, col);
+
+            simState.onSpawn(getId(), row, col);
+
             while (running && !reachedEnd()) {
-                Thread.sleep(Math.max(1, stepMs));
-                if (!running) break;
-                row += direction.dr;
-                col += direction.dc;
+                // 1. Calcula próxima célula na direção
+                int nextRow = row + direction.dr;
+                int nextCol = col + direction.dc;
+
+                // 2. Tenta adquirir a célula à frente — bloqueia se ocupada
+                locks.acquire(nextRow, nextCol);
+
+                // 3. Move: atualiza posição e libera a anterior
+                int previousRow = row;
+                int previousCol = col;
+
+                row = nextRow;
+                col = nextCol;
 
                 simState.onMove(getId(), row, col);
+                locks.release(previousRow, previousCol);
+
+                //4. Velocidade do carro definida com o sleep
+                Thread.sleep(Math.max(1, stepMs));
             }
         } catch (InterruptedException ignored) {
             // encerrando
         } finally {
+            try {
+                locks.release(row, col);
+            } catch (Exception ignored) {}
             simState.onExit(getId());
         }
     }
