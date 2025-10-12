@@ -71,16 +71,7 @@ public class Main extends Application {
 
                 int start = c;
 
-                ArrayList<Integer> crossroads = new ArrayList<>();
-                crossroads.add(LaneCodes.CRUZAMENTO_CIMA.getCodigo());
-                crossroads.add(LaneCodes.CRUZAMENTO_BAIXO.getCodigo());
-                crossroads.add(LaneCodes.CRUZAMENTO_CIMA_DIREITA.getCodigo());
-                crossroads.add(LaneCodes.CRUZAMENTO_ESQUERDA_BAIXO.getCodigo());
-                crossroads.add(LaneCodes.CRUZAMENTO_DIREITA_BAIXO.getCodigo());
-                crossroads.add(LaneCodes.CRUZAMENTO_CIMA_ESQUERDA.getCodigo());
-
-
-                while (c < gridRef[r].length && (gridRef[r][c] == 2 || crossroads.contains(gridRef[r][c]))) c++;
+                while (c < gridRef[r].length && (gridRef[r][c] == 2 || LaneCodes.isOnCrossroad(gridRef[r][c]))) c++;
                 int end = c - 1;
 
                 // achamos um segmento [start..end] de via 2

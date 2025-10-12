@@ -1,5 +1,7 @@
 package app.model.enums;
 
+import java.util.ArrayList;
+
 public enum LaneCodes {
     NADA(0),
     ESTRADA_CIMA(1),
@@ -23,6 +25,18 @@ public enum LaneCodes {
 
     public int getCodigo() {
         return codigo;
+    }
+
+    public static boolean isOnCrossroad(int codigo) {
+        ArrayList<Integer> crossroads = new ArrayList<>();
+        crossroads.add(LaneCodes.CRUZAMENTO_CIMA.getCodigo());
+        crossroads.add(LaneCodes.CRUZAMENTO_BAIXO.getCodigo());
+        crossroads.add(LaneCodes.CRUZAMENTO_CIMA_DIREITA.getCodigo());
+        crossroads.add(LaneCodes.CRUZAMENTO_ESQUERDA_BAIXO.getCodigo());
+        crossroads.add(LaneCodes.CRUZAMENTO_DIREITA_BAIXO.getCodigo());
+        crossroads.add(LaneCodes.CRUZAMENTO_CIMA_ESQUERDA.getCodigo());
+
+        return crossroads.contains(codigo);
     }
 
 
