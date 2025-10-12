@@ -16,7 +16,7 @@ public class MatrixCanvas extends Canvas {
     private double padding = 20; // margem ao redor
 
     // Abordagem para N carros, cara item vai ser uma lista [row, col]
-    private Collection<int[]> cars = List.of();
+    private Collection<SimulationState.CarInfo> cars = List.of(); // novo
 
     public MatrixCanvas() {
         // tamanho preferido inicial
@@ -82,17 +82,41 @@ public class MatrixCanvas extends Canvas {
         }
 
         // desenha N carros
-        for (int[] p : cars) {
-            drawCar(g, startX, startY, cellSize, p[0], p[1]);
+        for (SimulationState.CarInfo info : cars) {
+            drawCar(g, startX, startY, cellSize, info.getR(), info.getC(), info.color);
         }
     }
 
-    private void drawCar(GraphicsContext g, double startX, double startY, double cellSize, int r, int c) {
+    private void drawCar(GraphicsContext g, double startX, double startY, double cellSize, int r, int c, Color color) {
         double x = startX + c * cellSize, y = startY + r * cellSize;
-        double d = Math.max(3.0, cellSize * 0.45);
-        g.setFill(Color.WHITE);
-        g.fillOval(x + (cellSize - d)/2.0, y + (cellSize - d)/2.0, d, d);
+
+        // diâmetro base do carro
+        double d = Math.max(4.0, cellSize * 0.50);
+
+        // espessuras das bordas (proporcionais ao tamanho do carro)
+        double outerStroke = Math.max(1.5, d * 0.22); // borda externa (preta)
+        double innerStroke = Math.max(1.0, d * 0.14); // borda interna (branca)
+
+        double cx = x + (cellSize - d) / 2.0;
+        double cy = y + (cellSize - d) / 2.0;
+
+        // borda externa (preta)
+        g.setLineWidth(outerStroke);
+        g.setStroke(Color.BLACK);
+        g.strokeOval(cx, cy, d, d);
+
+        // borda interna (branca)
+        double inset1 = outerStroke * 0.6;
+        g.setLineWidth(innerStroke);
+        g.setStroke(Color.WHITE);
+        g.strokeOval(cx + inset1 / 2.0, cy + inset1 / 2.0, d - inset1, d - inset1);
+
+        // preenchimento do carro
+        double inset2 = inset1 + innerStroke * 0.6;
+        g.setFill(color);
+        g.fillOval(cx + inset2 / 2.0, cy + inset2 / 2.0, d - inset2, d - inset2);
     }
+
 
     /**
      * Mapeamento simples de cores para códigos 0..12
@@ -120,7 +144,7 @@ public class MatrixCanvas extends Canvas {
      * Define os carros que vão estar rodando na simulação
      * @param cars
      */
-    public void setCars(Collection<int[]> cars) {
+    public void setCars(Collection<SimulationState.CarInfo> cars) {
         this.cars = (cars == null ? List.of() : cars);
         redraw();
     }
