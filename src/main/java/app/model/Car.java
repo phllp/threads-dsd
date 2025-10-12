@@ -1,26 +1,38 @@
 package app.model;
 
-import app.view.MatrixCanvas;
-import javafx.application.Platform;
+import app.model.enums.Direction;
+import app.view.SimulationState;
 
 public class Car extends Thread {
-    private final MatrixCanvas canvas;
+    private final SimulationState simState;
     private final int[][] grid;
     private final int stepMs;
 
-    private final int row;
+    private int row;
     private int col;
+    private final int endRow;
     private final int endCol;
+
+    private final Direction direction;
 
     private volatile boolean running = true;
 
-    public Car(MatrixCanvas canvas, int[][] grid, int row, int startCol, int endCol, int stepMs) {
-        this.canvas = canvas;
+    public Car(SimulationState simState,
+               int[][] grid,
+               int row,
+               int startCol,
+               int endRow,
+               int endCol,
+               int stepMs,
+               Direction dir) {
+        this.simState = simState;
         this.grid = grid;
         this.row = row;
         this.col = startCol;
+        this.endRow = endRow;
         this.endCol = endCol;
         this.stepMs = stepMs;
+        this.direction = dir;
         setName("CarThread");
 
         // A thread pode ser interrompida junto com a aplicação
@@ -32,25 +44,27 @@ public class Car extends Thread {
         interrupt();
     }
 
+    private boolean reachedEnd() {
+        return row == endRow && col == endCol;
+    }
+
     @Override
     public void run() {
-        // todo add no slide: toda chamada que mexe em UI está dentro de Platform.runLater
-        // Thread-safe JavaFX: posiciona o carro inicialmente
-        Platform.runLater(() -> canvas.setCar(row, col));
+        simState.onSpawn(getId(), row, col);
 
         try {
-            while (running && col <= endCol) {
+            while (running && !reachedEnd()) {
                 Thread.sleep(Math.max(1, stepMs));
                 if (!running) break;
-                col++;
-                final int drawC = col;
-                Platform.runLater(() -> canvas.setCar(row, drawC));
+                row += direction.dr;
+                col += direction.dc;
+
+                simState.onMove(getId(), row, col);
             }
         } catch (InterruptedException ignored) {
             // encerrando
         } finally {
-            // ao terminar (naturalmente ou por stop), limpa o carro
-            Platform.runLater(canvas::clearCar);
+            simState.onExit(getId());
         }
     }
 

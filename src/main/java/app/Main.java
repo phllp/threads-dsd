@@ -1,29 +1,35 @@
 package app;
 
-import app.model.Car;
-import app.model.enums.LaneCodes;
+import app.model.RowSegment;
+import app.view.InserterThread;
 import app.view.MatrixCanvas;
+import app.view.SimulationState;
 import app.view.Ui;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
+import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.scene.control.Button;
 import javafx.scene.control.Spinner;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 import utils.MatrixParser;
 
 import java.io.InputStream;
+import java.util.function.IntSupplier;
 
 public class Main extends Application {
 
     private MatrixCanvas matrixCanvas;
 
     /** Armazena a malha */
-    private int[][] gridRef;
+    public static int[][] gridRef;
 
-    /** Testes com uma thread */
-    private Car carThread;
+    // Estado da simulação
+    private final SimulationState simState = new SimulationState();
+
+    // Renderização
+    private AnimationTimer painter;
+
+    // Controle de execução
+    private InserterThread inserter;
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -38,70 +44,69 @@ public class Main extends Application {
         Ui ui = new Ui();
         ui.buildLayout(stage, matrixCanvas);
         addActionListeners(ui);
+
+        // todo: testar com 30fps tbm
+        // painter: 60fps
+        painter = new AnimationTimer() {
+            @Override
+            public void handle(long now) {
+                matrixCanvas.setCars(simState.snapshotPositions());
+            }
+        };
+        painter.start();
     }
 
     private void addActionListeners(Ui ui) {
         Button btnIniciar = ui.getBtnIniciar();
         Button btnEncerrar = ui.getBtnEncerrar();
+        Button btnEncerrarInsercao = ui.getBtnEncerrarInsercao();
         Spinner<Integer> spnIntervaloMs = ui.getSpnIntervaloMs();
+        Spinner<Integer> spnMaxVeiculos = ui.getSpnMaxVeiculos();
 
-        btnIniciar.setOnAction(event -> {
-            startStraightRightDemo(spnIntervaloMs.getValue());
+        //@todo randomizar essa velocidade
+        // velocidade de cada carro
+        IntSupplier carStepMsSupplier = () -> 850;
+
+        btnIniciar.setOnAction(e -> {
+            ensureInserterRunning(spnMaxVeiculos::getValue, spnIntervaloMs::getValue, carStepMsSupplier);
+            // começa/retoma a inserir respeitando o "intervalo mínimo"
+            inserter.resumeInserting();
+        });
+
+        btnEncerrarInsercao.setOnAction(e -> {
+            if (inserter != null) {
+                // para só a inserção, carros ativos continuam
+                inserter.stopInserting();
+            }
         });
 
         btnEncerrar.setOnAction(e -> {
-            stopDemo();
-            matrixCanvas.clearCar();
+            stopAll();
         });
     }
 
-    /**
-     * Encontra a primeira entrada na parte da malha,
-     * para movimentar da esquerda para a direita
-     * @return
-     */
-    private int[] findFirstRightLaneSegment() {
-        for (int r = 0; r < gridRef.length; r++) {
-            int c = 0;
-            while (c < gridRef[r].length) {
-                // pula até achar um '2'
-                while (c < gridRef[r].length && gridRef[r][c] != 2) c++;
-                if (c >= gridRef[r].length) break;
-
-                int start = c;
-
-                while (c < gridRef[r].length && (gridRef[r][c] == 2 || LaneCodes.isOnCrossroad(gridRef[r][c]))) c++;
-                int end = c - 1;
-
-                // achamos um segmento [start..end] de via 2
-                return new int[]{ r, start, end };
-            }
+    private void ensureInserterRunning(IntSupplier maxCars, IntSupplier minInsertMs, IntSupplier carStep) {
+        if (inserter == null || !inserter.isAlive()) {
+            inserter = new InserterThread(
+                    gridRef,
+                    simState,
+                    maxCars,
+                    // ESTE é o tempo mínimo de inserção vindo da UI
+                    minInsertMs,
+                    carStep,
+                    // Rota de entrada, passada desta maneira pois vai ser encapsulada em um supplier
+                    () -> RowSegment.findRandomEdgeSegment()
+            );
+            inserter.start();
         }
-        return null;
     }
 
-    private synchronized void startStraightRightDemo(int stepMs) {
-        stopDemo(); // garante que não tem outro rodando
-
-        int[] seg = findFirstRightLaneSegment();
-        if (seg == null) {
-            System.out.println("Nenhum segmento horizontal de '2' encontrado.");
-            return;
+    private void stopAll() {
+        if (inserter != null) {
+            inserter.shutdown();
+            inserter = null;
         }
-
-        int row = seg[0];
-        int startCol = seg[1];
-        int endCol = seg[2];
-
-        carThread = new Car(matrixCanvas, gridRef, row, startCol, endCol, stepMs);
-        carThread.start();
-   }
-
-    private synchronized void stopDemo() {
-        if (carThread != null) {
-            carThread.requestStop();
-            carThread = null;
-        }
+        matrixCanvas.clearCars();
     }
 
 
