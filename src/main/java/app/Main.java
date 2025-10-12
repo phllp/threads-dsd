@@ -1,16 +1,13 @@
 package app;
 
 import app.model.Car;
-import app.model.enums.LaneCodes;
+import app.model.enums.LaneCode;
 import app.view.MatrixCanvas;
 import app.view.Ui;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.scene.control.Button;
 import javafx.scene.control.Spinner;
 import javafx.stage.Stage;
-import javafx.util.Duration;
 import utils.MatrixParser;
 
 import java.io.InputStream;
@@ -70,7 +67,7 @@ public class Main extends Application {
 
                 int start = c;
 
-                while (c < gridRef[r].length && (gridRef[r][c] == 2 || LaneCodes.isOnCrossroad(gridRef[r][c]))) c++;
+                while (c < gridRef[r].length && (gridRef[r][c] == 2 || LaneCode.isOnCrossroad(gridRef[r][c]))) c++;
                 int end = c - 1;
 
                 // achamos um segmento [start..end] de via 2
