@@ -4,10 +4,17 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
+/**
+ * Classe responsável por renderizar a malha e seu conteúdo
+ *
+ */
 public class MatrixCanvas extends Canvas {
 
     private int[][] grid;
     private double padding = 20; // margem ao redor
+
+    //Estado de um carro
+    private Integer carR = null, carC = null;
 
     public MatrixCanvas() {
         // tamanho preferido inicial
@@ -33,6 +40,7 @@ public class MatrixCanvas extends Canvas {
         g.setFill(Color.web("#1e1e1e"));
         g.fillRect(0, 0, w, h);
 
+        // Se uma matriz não for informada não há nada para redesenhar
         if (grid == null || grid.length == 0 || grid[0].length == 0) return;
 
         int rows = grid.length;
@@ -41,15 +49,17 @@ public class MatrixCanvas extends Canvas {
         double drawableW = w - 2 * padding;
         double drawableH = h - 2 * padding;
 
-        // células quadradas, cabendo na área
+        // Define células quadradas que caibam na tela
         double cellSize = Math.floor(Math.min(drawableW / cols, drawableH / rows));
         double startX = (w - (cellSize * cols)) / 2.0;
         double startY = (h - (cellSize * rows)) / 2.0;
 
-        // desenha células
+        // Desenha as celulas
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 int code = grid[r][c];
+
+                //Pinta a célula de acordo com o seu código
                 g.setFill(colorFor(code));
                 double x = startX + c * cellSize;
                 double y = startY + r * cellSize;
@@ -57,7 +67,7 @@ public class MatrixCanvas extends Canvas {
             }
         }
 
-        // linhas da grade (wireframe)
+        // Desenha as linhas da grade
         g.setStroke(Color.gray(0.25));
         g.setLineWidth(1.0);
         for (int r = 0; r <= rows; r++) {
@@ -68,6 +78,28 @@ public class MatrixCanvas extends Canvas {
             double x = startX + c * cellSize + 0.5;
             g.strokeLine(x, startY, x, startY + rows * cellSize);
         }
+        if (grid != null && carR != null && carC != null) {
+            drawCarMoving(w, h, g);
+        }
+    }
+
+    private void drawCarMoving(double w, double h, GraphicsContext g) {
+        int rows = grid.length;
+        int cols = grid[0].length;
+
+        double drawableW = w - 2 * padding;
+        double drawableH = h - 2 * padding;
+        double cellSize = Math.floor(Math.min(drawableW / cols, drawableH / rows));
+        double startX = (w - (cellSize * cols)) / 2.0;
+        double startY = (h - (cellSize * rows)) / 2.0;
+
+        double x = startX + carC * cellSize;
+        double y = startY + carR * cellSize;
+
+        // Desenha círculo no meio da célula, representando um carro
+        double d = Math.max(3.0, cellSize * 0.45);
+        g.setFill(Color.WHITE);
+        g.fillOval(x + (cellSize - d) / 2.0, y + (cellSize - d) / 2.0, d, d);
     }
 
     /**
@@ -90,6 +122,17 @@ public class MatrixCanvas extends Canvas {
             case 12 -> Color.web("#EF5350"); // baixo+esquerda
             default -> Color.DARKGRAY;
         };
+    }
+
+    public void setCar(int r, int c) {
+        this.carR = r;
+        this.carC = c;
+        redraw();
+    }
+
+    public void clearCar() {
+        this.carR = this.carC = null;
+        redraw();
     }
 
 

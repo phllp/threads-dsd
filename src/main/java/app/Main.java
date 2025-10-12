@@ -1,89 +1,109 @@
 package app;
 
+import app.model.Car;
+import app.model.enums.LaneCodes;
 import app.view.MatrixCanvas;
+import app.view.Ui;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Application;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.control.Button;
+import javafx.scene.control.Spinner;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import utils.MatrixParser;
 
 import java.io.InputStream;
 
 public class Main extends Application {
 
-    // Componentes da barra
-    private Spinner<Integer> spnMaxVeiculos;
-    private Spinner<Integer> spnIntervaloMs;
-    private ComboBox<String> cbExclusao;
-
     private MatrixCanvas matrixCanvas;
+
+    /** Armazena a malha */
+    private int[][] gridRef;
+
+    /** Testes com uma thread */
+    private Car carThread;
 
     @Override
     public void start(Stage stage) throws Exception {
         // Carrega a malha
-        int[][] grid = loadGridFromResources("/malhas/malha-exemplo-2.txt");
+        int[][] grid = loadGridFromResources("/malhas/malha-exemplo-1.txt");
+        this.gridRef = grid;
 
         // Canvas de desenho
         matrixCanvas = new MatrixCanvas();
         matrixCanvas.setGrid(grid);
 
-        BorderPane root = new BorderPane();
-        root.setTop(buildToolbar());
-        root.setCenter(matrixCanvas);
-        BorderPane.setAlignment(matrixCanvas, Pos.CENTER);
-        BorderPane.setMargin(matrixCanvas, new Insets(8));
-
-        Scene scene = new Scene(root, 1000, 700);
-        stage.setTitle("Simulador de Tráfego — UI Básica");
-        stage.setScene(scene);
-        stage.show();
-
-        // Redesenha responsivamente
-        root.widthProperty().addListener((obs, o, n) -> matrixCanvas.redraw());
-        root.heightProperty().addListener((obs, o, n) -> matrixCanvas.redraw());
+        Ui ui = new Ui();
+        ui.buildLayout(stage, matrixCanvas);
+        addActionListeners(ui);
     }
 
-    private ToolBar buildToolbar() {
-        // Limite de veículos simultâneos
-        spnMaxVeiculos = new Spinner<>(1, 1000, 50, 1);
-        spnMaxVeiculos.setEditable(true);
-        spnMaxVeiculos.setPrefWidth(100);
+    private void addActionListeners(Ui ui) {
+        Button btnIniciar = ui.getBtnIniciar();
+        Button btnEncerrar = ui.getBtnEncerrar();
+        Spinner<Integer> spnIntervaloMs = ui.getSpnIntervaloMs();
 
-        // Intervalo de inserção
-        spnIntervaloMs = new Spinner<>(50, 60_000, 500, 50);
-        spnIntervaloMs.setEditable(true);
-        spnIntervaloMs.setPrefWidth(120);
+        btnIniciar.setOnAction(event -> {
+            startStraightRightDemo(spnIntervaloMs.getValue());
+        });
 
-        // Mecanismo de exclusão mútua
-        cbExclusao = new ComboBox<>();
-        cbExclusao.getItems().addAll("Semáforo", "Monitor");
-        cbExclusao.getSelectionModel().selectFirst();
-
-        Button btnIniciar = new Button("Iniciar simulação");
-        Button btnEncerrarInsercao = new Button("Encerrar inserção");
-        Button btnEncerrar = new Button("Encerrar simulação");
-
-        Label lbMax = new Label("Limite veículos:");
-        Label lbInt = new Label("Intervalo (ms):");
-        Label lbExc = new Label("Exclusão mútua:");
-
-        ToolBar tb = new ToolBar(
-                lbMax, spnMaxVeiculos,
-                new Separator(),
-                lbInt, spnIntervaloMs,
-                new Separator(),
-                lbExc, cbExclusao,
-                new Separator(),
-                btnIniciar,
-                btnEncerrarInsercao,
-                btnEncerrar
-        );
-        tb.setPadding(new Insets(6));
-        return tb;
+        btnEncerrar.setOnAction(e -> {
+            stopDemo();
+            matrixCanvas.clearCar();
+        });
     }
+
+    /**
+     * Encontra a primeira entrada na parte da malha,
+     * para movimentar da esquerda para a direita
+     * @return
+     */
+    private int[] findFirstRightLaneSegment() {
+        for (int r = 0; r < gridRef.length; r++) {
+            int c = 0;
+            while (c < gridRef[r].length) {
+                // pula até achar um '2'
+                while (c < gridRef[r].length && gridRef[r][c] != 2) c++;
+                if (c >= gridRef[r].length) break;
+
+                int start = c;
+
+                while (c < gridRef[r].length && (gridRef[r][c] == 2 || LaneCodes.isOnCrossroad(gridRef[r][c]))) c++;
+                int end = c - 1;
+
+                // achamos um segmento [start..end] de via 2
+                return new int[]{ r, start, end };
+            }
+        }
+        return null;
+    }
+
+    private synchronized void startStraightRightDemo(int stepMs) {
+        stopDemo(); // garante que não tem outro rodando
+
+        int[] seg = findFirstRightLaneSegment();
+        if (seg == null) {
+            System.out.println("Nenhum segmento horizontal de '2' encontrado.");
+            return;
+        }
+
+        int row = seg[0];
+        int startCol = seg[1];
+        int endCol = seg[2];
+
+        carThread = new Car(matrixCanvas, gridRef, row, startCol, endCol, stepMs);
+        carThread.start();
+   }
+
+    private synchronized void stopDemo() {
+        if (carThread != null) {
+            carThread.requestStop();
+            carThread = null;
+        }
+    }
+
 
     private int[][] loadGridFromResources(String resourcePath) throws Exception {
         try (InputStream in = getClass().getResourceAsStream(resourcePath)) {
@@ -96,4 +116,6 @@ public class Main extends Application {
     public static void main(String[] args) {
         launch(args);
     }
+
+
 }
