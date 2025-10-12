@@ -1,11 +1,10 @@
 package app.model;
 
 import app.model.enums.Direction;
-import app.view.MatrixCanvas;
-import javafx.application.Platform;
+import app.view.SimulationState;
 
 public class Car extends Thread {
-    private final MatrixCanvas canvas;
+    private final SimulationState simState;
     private final int[][] grid;
     private final int stepMs;
 
@@ -18,8 +17,15 @@ public class Car extends Thread {
 
     private volatile boolean running = true;
 
-    public Car(MatrixCanvas canvas, int[][] grid, int row, int startCol, int endRow, int endCol, int stepMs, Direction dir) {
-        this.canvas = canvas;
+    public Car(SimulationState simState,
+               int[][] grid,
+               int row,
+               int startCol,
+               int endRow,
+               int endCol,
+               int stepMs,
+               Direction dir) {
+        this.simState = simState;
         this.grid = grid;
         this.row = row;
         this.col = startCol;
@@ -44,9 +50,7 @@ public class Car extends Thread {
 
     @Override
     public void run() {
-        // todo add no slide: toda chamada que mexe em UI está dentro de Platform.runLater
-        // Thread-safe JavaFX: posiciona o carro inicialmente
-        Platform.runLater(() -> canvas.setCar(row, col));
+        simState.onSpawn(getId(), row, col);
 
         try {
             while (running && !reachedEnd()) {
@@ -54,15 +58,13 @@ public class Car extends Thread {
                 if (!running) break;
                 row += direction.dr;
                 col += direction.dc;
-                final int curentRow = row;
-                final int curentCol = col;
-                javafx.application.Platform.runLater(() -> canvas.setCar(curentRow, curentCol));
+
+                simState.onMove(getId(), row, col);
             }
         } catch (InterruptedException ignored) {
             // encerrando
         } finally {
-            // ao terminar (naturalmente ou por stop), limpa o carro
-            Platform.runLater(canvas::clearCar);
+            simState.onExit(getId());
         }
     }
 

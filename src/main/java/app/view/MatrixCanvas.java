@@ -4,17 +4,19 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
+import java.util.Collection;
+import java.util.List;
+
 /**
  * Classe responsável por renderizar a malha e seu conteúdo
- *
  */
 public class MatrixCanvas extends Canvas {
 
     private int[][] grid;
     private double padding = 20; // margem ao redor
 
-    //Estado de um carro
-    private Integer carR = null, carC = null;
+    // Abordagem para N carros, cara item vai ser uma lista [row, col]
+    private Collection<int[]> cars = List.of();
 
     public MatrixCanvas() {
         // tamanho preferido inicial
@@ -78,28 +80,18 @@ public class MatrixCanvas extends Canvas {
             double x = startX + c * cellSize + 0.5;
             g.strokeLine(x, startY, x, startY + rows * cellSize);
         }
-        if (grid != null && carR != null && carC != null) {
-            drawCarMoving(w, h, g);
+
+        // desenha N carros
+        for (int[] p : cars) {
+            drawCar(g, startX, startY, cellSize, p[0], p[1]);
         }
     }
 
-    private void drawCarMoving(double w, double h, GraphicsContext g) {
-        int rows = grid.length;
-        int cols = grid[0].length;
-
-        double drawableW = w - 2 * padding;
-        double drawableH = h - 2 * padding;
-        double cellSize = Math.floor(Math.min(drawableW / cols, drawableH / rows));
-        double startX = (w - (cellSize * cols)) / 2.0;
-        double startY = (h - (cellSize * rows)) / 2.0;
-
-        double x = startX + carC * cellSize;
-        double y = startY + carR * cellSize;
-
-        // Desenha círculo no meio da célula, representando um carro
+    private void drawCar(GraphicsContext g, double startX, double startY, double cellSize, int r, int c) {
+        double x = startX + c * cellSize, y = startY + r * cellSize;
         double d = Math.max(3.0, cellSize * 0.45);
         g.setFill(Color.WHITE);
-        g.fillOval(x + (cellSize - d) / 2.0, y + (cellSize - d) / 2.0, d, d);
+        g.fillOval(x + (cellSize - d)/2.0, y + (cellSize - d)/2.0, d, d);
     }
 
     /**
@@ -124,14 +116,17 @@ public class MatrixCanvas extends Canvas {
         };
     }
 
-    public void setCar(int r, int c) {
-        this.carR = r;
-        this.carC = c;
+    /**
+     * Define os carros que vão estar rodando na simulação
+     * @param cars
+     */
+    public void setCars(Collection<int[]> cars) {
+        this.cars = (cars == null ? List.of() : cars);
         redraw();
     }
 
-    public void clearCar() {
-        this.carR = this.carC = null;
+    public void clearCars() {
+        this.cars = List.of();
         redraw();
     }
 
