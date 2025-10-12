@@ -1,5 +1,6 @@
 package app;
 
+import app.core.CellLockGridSemaphore;
 import app.model.RowSegment;
 import app.view.InserterThread;
 import app.view.MatrixCanvas;
@@ -13,6 +14,7 @@ import javafx.stage.Stage;
 import utils.MatrixParser;
 
 import java.io.InputStream;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntSupplier;
 
 public class Main extends Application {
@@ -31,11 +33,15 @@ public class Main extends Application {
     // Controle de execução
     private InserterThread inserter;
 
+    private CellLockGridSemaphore cellLocks;
+
     @Override
     public void start(Stage stage) throws Exception {
         // Carrega a malha
-        int[][] grid = loadGridFromResources("/malhas/malha-exemplo-1.txt");
-        this.gridRef = grid;
+        int[][] grid = loadGridFromResources("/malhas/malha-exemplo-3.txt");
+        gridRef = grid;
+
+        cellLocks = new CellLockGridSemaphore(gridRef.length, gridRef[0].length);
 
         // Canvas de desenho
         matrixCanvas = new MatrixCanvas();
@@ -63,9 +69,8 @@ public class Main extends Application {
         Spinner<Integer> spnIntervaloMs = ui.getSpnIntervaloMs();
         Spinner<Integer> spnMaxVeiculos = ui.getSpnMaxVeiculos();
 
-        //@todo randomizar essa velocidade
-        // velocidade de cada carro
-        IntSupplier carStepMsSupplier = () -> 850;
+        // Fornece uma velocidade aleatória para cada carro/thread
+        IntSupplier carStepMsSupplier =  () -> 200 + ThreadLocalRandom.current().nextInt(400);
 
         btnIniciar.setOnAction(e -> {
             ensureInserterRunning(spnMaxVeiculos::getValue, spnIntervaloMs::getValue, carStepMsSupplier);
@@ -90,6 +95,7 @@ public class Main extends Application {
             inserter = new InserterThread(
                     gridRef,
                     simState,
+                    cellLocks,
                     maxCars,
                     // ESTE é o tempo mínimo de inserção vindo da UI
                     minInsertMs,
