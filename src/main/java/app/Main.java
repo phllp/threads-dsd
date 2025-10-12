@@ -1,6 +1,7 @@
 package app;
 
 import app.model.Car;
+import app.model.RowSegment;
 import app.model.enums.LaneCode;
 import app.view.MatrixCanvas;
 import app.view.Ui;
@@ -17,7 +18,7 @@ public class Main extends Application {
     private MatrixCanvas matrixCanvas;
 
     /** Armazena a malha */
-    private int[][] gridRef;
+    public static int[][] gridRef;
 
     /** Testes com uma thread */
     private Car carThread;
@@ -43,7 +44,7 @@ public class Main extends Application {
         Spinner<Integer> spnIntervaloMs = ui.getSpnIntervaloMs();
 
         btnIniciar.setOnAction(event -> {
-            startStraightRightDemo(spnIntervaloMs.getValue());
+            startRandomStraightDemo(spnIntervaloMs.getValue());
         });
 
         btnEncerrar.setOnAction(e -> {
@@ -77,22 +78,18 @@ public class Main extends Application {
         return null;
     }
 
-    private synchronized void startStraightRightDemo(int stepMs) {
-        stopDemo(); // garante que não tem outro rodando
+    private synchronized void startRandomStraightDemo(int stepMs) {
+        stopDemo();
+        RowSegment seg = RowSegment.findRandomEdgeSegment();
 
-        int[] seg = findFirstRightLaneSegment();
         if (seg == null) {
-            System.out.println("Nenhum segmento horizontal de '2' encontrado.");
+            System.out.println("Nenhum segmento de entrada válido encontrado nas bordas.");
             return;
         }
-
-        int row = seg[0];
-        int startCol = seg[1];
-        int endCol = seg[2];
-
-        carThread = new Car(matrixCanvas, gridRef, row, startCol, endCol, stepMs);
+        // inicia a thread do carro naquela direção
+        carThread = new Car(matrixCanvas, gridRef, seg.getR0(), seg.getC0(), seg.getR1(), seg.getC1(), stepMs, seg.getDirection());
         carThread.start();
-   }
+    }
 
     private synchronized void stopDemo() {
         if (carThread != null) {
