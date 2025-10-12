@@ -1,5 +1,6 @@
 package app;
 
+import app.model.Car;
 import app.model.enums.LaneCodes;
 import app.view.MatrixCanvas;
 import app.view.Ui;
@@ -13,7 +14,6 @@ import javafx.util.Duration;
 import utils.MatrixParser;
 
 import java.io.InputStream;
-import java.util.ArrayList;
 
 public class Main extends Application {
 
@@ -22,9 +22,8 @@ public class Main extends Application {
     /** Armazena a malha */
     private int[][] gridRef;
 
-    /** Testes com um carro */
-    private Timeline demo;
-    private int carR = -1, carC = -1;
+    /** Testes com uma thread */
+    private Car carThread;
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -81,7 +80,7 @@ public class Main extends Application {
         return null;
     }
 
-    private void startStraightRightDemo(int stepMs) {
+    private synchronized void startStraightRightDemo(int stepMs) {
         stopDemo(); // garante que não tem outro rodando
 
         int[] seg = findFirstRightLaneSegment();
@@ -89,31 +88,19 @@ public class Main extends Application {
             System.out.println("Nenhum segmento horizontal de '2' encontrado.");
             return;
         }
-        carR = seg[0];
-        carC = seg[1];
-        matrixCanvas.setCar(carR, carC);
 
-        int endC = seg[2];
+        int row = seg[0];
+        int startCol = seg[1];
+        int endCol = seg[2];
 
-        System.out.println("End = " + endC);
+        carThread = new Car(matrixCanvas, gridRef, row, startCol, endCol, stepMs);
+        carThread.start();
+   }
 
-        demo = new Timeline(new KeyFrame(Duration.millis(stepMs), e -> {
-            if (carC < endC) {
-                carC += 1;
-                matrixCanvas.setCar(carR, carC);
-            } else {
-                // chegou no fim do segmento -> para a demo
-                stopDemo();
-            }
-        }));
-        demo.setCycleCount(Timeline.INDEFINITE);
-        demo.play();
-    }
-
-    private void stopDemo() {
-        if (demo != null) {
-            demo.stop();
-            demo = null;
+    private synchronized void stopDemo() {
+        if (carThread != null) {
+            carThread.requestStop();
+            carThread = null;
         }
     }
 
