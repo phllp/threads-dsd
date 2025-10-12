@@ -16,7 +16,7 @@ public final class RowSegment {
 
     final Direction direction;
 
-    RowSegment(int r0, int c0, int r1, int c1, Direction direction) {
+    public RowSegment(int r0, int c0, int r1, int c1, Direction direction) {
         this.r0 = r0;
         this.c0 = c0;
         this.r1 = r1;
@@ -83,7 +83,7 @@ public final class RowSegment {
             }
         }
 
-        // ---- Borda esquerda: entrada "para directioneita" (RIGHT) ----
+        // ---- Borda esquerda: entrada "para direita" (RIGHT) ----
         {
             Direction d = Direction.RIGHT;
             int c = 0;
@@ -100,7 +100,7 @@ public final class RowSegment {
             }
         }
 
-        // ---- Borda directioneita: entrada "para esquerda" (LEFT) ----
+        // ---- Borda direita: entrada "para esquerda" (LEFT) ----
         {
             Direction d = Direction.LEFT;
             int c = cols - 1;
@@ -122,8 +122,8 @@ public final class RowSegment {
         }
 
         return candidates.get(
-                //todo add explicação no slide
-                ThreadLocalRandom.current().nextInt(candidates.size())
+            //todo add explicação no slide
+            ThreadLocalRandom.current().nextInt(candidates.size())
         );
     }
 
