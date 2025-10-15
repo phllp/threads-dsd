@@ -1,5 +1,6 @@
-package app.view;
+package app.core;
 
+import app.view.CarColors;
 import javafx.scene.paint.Color;
 
 import java.util.Collection;

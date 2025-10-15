@@ -1,6 +1,5 @@
-package app.view;
+package app.core;
 
-import app.core.CellLockGridSemaphore;
 import app.model.Car;
 import app.model.RowSegment;
 
@@ -102,6 +101,8 @@ public class InserterThread extends Thread {
                     }
                 }
 
+                // Sleep adicionado para evitar que o while rode freneticamente sem necessidade
+                // O tempo de inclusão de um novo carro continua sendo parametrizado
                 Thread.sleep(10);
             }
         } catch (InterruptedException ignored) {}

@@ -2,9 +2,9 @@ package app;
 
 import app.core.CellLockGridSemaphore;
 import app.model.RowSegment;
-import app.view.InserterThread;
+import app.core.InserterThread;
 import app.view.MatrixCanvas;
-import app.view.SimulationState;
+import app.core.SimulationState;
 import app.view.Ui;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
