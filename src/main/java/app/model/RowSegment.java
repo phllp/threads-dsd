@@ -29,7 +29,7 @@ public final class RowSegment {
     }
 
     private static int[] step(int r, int c, Direction d) {
-        return new int[]{ r + d.dr, c + d.dc };
+        return new int[]{ r + d.dirRow, c + d.dirCol };
     }
 
     private static boolean inBounds(int r, int c, int[][] g) {
@@ -60,7 +60,7 @@ public final class RowSegment {
                         rr = nx[0]; cc = nx[1];
                     }
                     // último válido é um passo antes
-                    int[] back = new int[]{ rr - d.dr, cc - d.dc };
+                    int[] back = new int[]{ rr - d.dirRow, cc - d.dirCol };
                     candidates.add(new RowSegment(r, c, back[0], back[1], d));
                 }
             }
@@ -77,7 +77,7 @@ public final class RowSegment {
                         int[] nx = step(rr, cc, d);
                         rr = nx[0]; cc = nx[1];
                     }
-                    int[] back = new int[]{ rr - d.dr, cc - d.dc };
+                    int[] back = new int[]{ rr - d.dirRow, cc - d.dirCol };
                     candidates.add(new RowSegment(r, c, back[0], back[1], d));
                 }
             }
@@ -94,7 +94,7 @@ public final class RowSegment {
                         int[] nx = step(rr, cc, d);
                         rr = nx[0]; cc = nx[1];
                     }
-                    int[] back = new int[]{ rr - d.dr, cc - d.dc };
+                    int[] back = new int[]{ rr - d.dirRow, cc - d.dirCol };
                     candidates.add(new RowSegment(r, c, back[0], back[1], d));
                 }
             }
@@ -111,7 +111,7 @@ public final class RowSegment {
                         int[] nx = step(rr, cc, d);
                         rr = nx[0]; cc = nx[1];
                     }
-                    int[] back = new int[]{ rr - d.dr, cc - d.dc };
+                    int[] back = new int[]{ rr - d.dirRow, cc - d.dirCol };
                     candidates.add(new RowSegment(r, c, back[0], back[1], d));
                 }
             }

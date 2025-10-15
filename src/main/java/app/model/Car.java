@@ -2,7 +2,12 @@ package app.model;
 
 import app.core.CellLockGridSemaphore;
 import app.model.enums.Direction;
-import app.view.SimulationState;
+import app.core.SimulationState;
+import app.model.enums.LaneCode;
+import utils.CrossPlanner;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Car extends Thread {
     private final SimulationState simState;
@@ -15,7 +20,7 @@ public class Car extends Thread {
     private final int endRow;
     private final int endCol;
 
-    private final Direction direction;
+    private Direction direction;
 
     private volatile boolean running = true;
 
@@ -55,35 +60,131 @@ public class Car extends Thread {
     @Override
     public void run() {
         try {
-            // Segura a célula inicial (bloqueante).
+            // Bloqueia a célula inicial para garantir exclusão mútua desde o spawn
             locks.acquire(row, col);
-
+            // Registra o carro no estado para saber cor, posição, etc
             simState.onSpawn(getId(), row, col);
 
+            // [LOOP PRINCIPAL] – executa enquanto a thread estiver ativa e a rota não terminou
             while (running && !reachedEnd()) {
-                // 1. Calcula próxima célula na direção
-                int nextRow = row + direction.dr;
-                int nextCol = col + direction.dc;
+                // Calcula próxima célula na direção
+                int nextRow = row + direction.dirRow;
+                int nextCol = col + direction.dirCol;
 
-                // 2. Tenta adquirir a célula à frente — bloqueia se ocupada
-                locks.acquire(nextRow, nextCol);
+                // Continua dentro da malha?
+                if (nextRow < 0 || nextCol < 0 || nextRow >= grid.length || nextCol >= grid[0].length) {
+                    // saiu da malha
+                    break;
+                }
 
-                // 3. Move: atualiza posição e libera a anterior
-                int previousRow = row;
-                int previousCol = col;
+                // Armazena o código da próxima célula do grid
+                int nextCode = grid[nextRow][nextCol];
 
-                row = nextRow;
-                col = nextCol;
+                boolean stillGoingSameWay = nextCode == direction.laneCode.getCodigo();
+                // Se a próxima célula pertence ao mesmo “tipo de via” na direção atual
+                if (stillGoingSameWay) {
+                    // Continua na mesma direção: adquire próximo, atualiza posição, libera a anterior
+                    locks.acquire(nextRow, nextCol);
+                    int previousRow = row;
+                    int previousCol = col;
 
-                simState.onMove(getId(), row, col);
-                locks.release(previousRow, previousCol);
+                    row = nextRow;
+                    col = nextCol;
 
-                //4. Velocidade do carro definida com o sleep
-                Thread.sleep(Math.max(1, stepMs));
+                    // Notifica a UI/estado para redesenho com a nova posição
+                    simState.onMove(getId(), row, col);
+
+                    // Libera a célula que ficou para trás
+                    locks.release(previousRow, previousCol);
+                    //Controle da velocidade
+                    Thread.sleep(Math.max(1, stepMs));
+
+                    // Cruzamento detectado
+                } else if (LaneCode.isOnCrossroad(nextCode)) {
+                    // 2.1) Planejamento: define caminho interno pelo cruzamento + célula de saída.
+                    //      - escolhe saída antes de entrar
+                    //      - aplica regras de pares proibidos
+                    //      - inclui a 1ª célula fora (evita “parar em cima” do cruzamento)
+                    var plan = CrossPlanner.plan(grid, nextRow, nextCol, direction);
+
+                    if (plan.isEmpty()) {
+                        // Sem rota viável agora — reavaliar no próximo ciclo
+                        Thread.sleep(Math.max(1, stepMs));
+                        continue;
+                    }
+
+                    // Faz uma cópia: acquireAll pode ordenar a lista para prevenir deadlocks
+                    List<int[]> path = new ArrayList<>(plan.cells);
+
+                    // 2) Tenta reservar todas as células do caminho (cruzamento + 1 após a saída)
+                    //    não inclui a célula atual pois ela já está travada
+                    long timeout = 200; //@todo parametrizar via UI
+                    if (!locks.acquireAll(new ArrayList<>(plan.cells), timeout)) {
+                        // Não conseguiu reservar agora — tenta depois
+                        Thread.sleep(Math.max(1, stepMs));
+                        continue;
+                    }
+
+                    // Índice da última célula efetivamente ocupada do 'path' (para rollback seguro)
+                    int progressed = -1;
+
+                    // Guarda a célula ocupada no momento (será liberada a cada avanço).
+                    int prevR = row;
+                    int prevC = col;
+
+
+                    try {
+                        // 2.3) Travessia do cruzamento:
+                        //      anda célula-a-célula liberando sempre a anterior, mantendo
+                        //      reservadas as futuras (garantindo que não bloqueia o cruzamento)
+                        for (int i = 0; i < path.size(); i++) {
+                            int[] step = path.get(i);
+                            int tr = step[0], tc = step[1];
+
+                            row = tr;
+                            col = tc;
+
+                            // Atualiza posição para renderização
+                            simState.onMove(getId(), row, col);
+
+                            // Libera só a célula anterior
+                            locks.release(prevR, prevC);
+
+                            prevR = row;
+                            prevC = col;
+                            progressed = i;
+
+                            Thread.sleep(Math.max(1, stepMs));
+                        }
+
+                        // 2.4) Ao concluir o trajeto interno, o carro já está fora do cruzamento:
+                        //      atualiza a direção para a direção de saída planejada.
+                        direction = plan.exitDir;
+
+                        // Observação: prevR e prevC continuam bloqueados (célula atual)
+                        // Ela permanece sob posse deste carro até a próxima iteração do loop, quando outro passo for decidido
+                    } finally {
+                        // 2.5) Limpeza defensiva:
+                        // Se houve interrupção/exceção dentro do for, libera SOMENTE as células
+                        // futuras ainda reservadas e não utilizadas. Evita “over-release”.
+                        for (int i = progressed + 1; i < path.size(); i++) {
+                            int[] p = path.get(i);
+                            locks.release(p[0], p[1]);
+                        }
+                        // Importante: NÃO chame releaseAll(path) aqui,
+                        // pois liberaria de novo células já liberadas durante a travessia.
+                    }
+
+                }  else {
+                    //não há cruzamento, é apenas uma curva na estrada
+                    //@todo implementar isso
+                }
+
             }
         } catch (InterruptedException ignored) {
             // encerrando
         } finally {
+            // [SHUTDOWN] – Libera a célula atual e remove do estado
             try {
                 locks.release(row, col);
             } catch (Exception ignored) {}
