@@ -1,8 +1,11 @@
 package app.view;
 
+import app.core.SimulationState;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 
 import java.util.Collection;
 import java.util.List;
@@ -66,6 +69,27 @@ public class MatrixCanvas extends Canvas {
                 double x = startX + c * cellSize;
                 double y = startY + r * cellSize;
                 g.fillRect(x, y, cellSize, cellSize);
+
+                // Agora desenha o número no centro
+                g.setFill(Color.BLACK); // Cor do texto (ou outra que contraste com o fundo)
+                g.setFont(new Font("Arial", cellSize * 0.5)); // Tamanho proporcional à célula
+
+                // Texto que será exibido (por exemplo, o próprio código)
+                String texto = String.valueOf(code);
+
+                // Calcula as coordenadas para centralizar o texto
+                Text tempText = new Text(texto);
+                tempText.setFont(g.getFont());
+                double textWidth = tempText.getLayoutBounds().getWidth();
+                double textHeight = tempText.getLayoutBounds().getHeight();
+
+                // Desenha o texto centralizado
+                g.fillText(
+                        texto,
+                        x + (cellSize - textWidth) / 2,
+                        y + (cellSize + textHeight / 2) / 2
+                );
+
             }
         }
 
