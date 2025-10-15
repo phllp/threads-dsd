@@ -1,10 +1,8 @@
 package app;
 
-import app.core.CellLockGridSemaphore;
+import app.core.*;
 import app.model.RowSegment;
-import app.core.InserterThread;
 import app.view.MatrixCanvas;
-import app.core.SimulationState;
 import app.view.Ui;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
@@ -33,15 +31,17 @@ public class Main extends Application {
     // Controle de execução
     private InserterThread inserter;
 
-    private CellLockGridSemaphore cellLocks;
+    private CellLockGrid cellLocks;
+
+    LockMode mode = LockMode.MONITOR;
 
     @Override
     public void start(Stage stage) throws Exception {
         // Carrega a malha
-        int[][] grid = loadGridFromResources("/malhas/malha-exemplo-3.txt");
+        int[][] grid = loadGridFromResources("/malhas/malha-exemplo-2.txt");
         gridRef = grid;
 
-        cellLocks = new CellLockGridSemaphore(gridRef.length, gridRef[0].length);
+        cellLocks = CellLockFactory.create(mode, gridRef.length, gridRef[0].length);
 
         // Canvas de desenho
         matrixCanvas = new MatrixCanvas();
