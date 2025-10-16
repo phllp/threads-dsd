@@ -2,10 +2,29 @@ package app.core;
 
 import java.util.*;
 
+/**
+ * Implementação de grade de locks por CÉLULA usando Monitor (synchronized + wait/notifyAll).
+ */
 public class CellLockGridMonitor implements CellLockGrid {
+
+    /**
+     * Monitor de uma célula (um por posição do grid).
+     * Encapsula o estado {@code occupied} e as operações de acquire/release/tryAcquireUntil.
+     *
+     * Observações de implementação:
+     * - {@code synchronized} protege o acesso a {@code occupied} e coordena as esperas.
+     * - Usamos {@code notifyAll()} (e não {@code notify()}) para evitar “perda” de sinal em cenários
+     *   com múltiplos esperantes; quem acorda reavalia a condição em um laço (padrão monitor).
+     * - O método {@code tryAcquireUntil} implementa um timeout baseado em **deadline absoluto**
+     *   (soma das esperas), tolerando despertares espúrios.
+     */
     private static final class Cell {
         private boolean occupied = false;
 
+        /**
+         * Tenta adquirir antes do deadlineMs. Retorna true se conseguiu, false por timeout.
+         * Usa laço while para reaplicar a condição (padrão monitor) e lida com despertares espúrios.
+         */
         synchronized boolean tryAcquireUntil(long deadlineMs) throws InterruptedException {
             long remaining;
             while (occupied && (remaining = deadlineMs - System.currentTimeMillis()) > 0) {
@@ -18,11 +37,16 @@ public class CellLockGridMonitor implements CellLockGrid {
             return false; // timeout
         }
 
+        /** Adquire bloqueando até ficar livre (sem timeout). */
         synchronized void acquire() throws InterruptedException {
             while (occupied) wait();
             occupied = true;
         }
 
+        /**
+         * Libera a célula e acorda todos os esperantes.
+         * Faz uma proteção best-effort contra over-release (ignora se já está livre).
+         */
         synchronized void release() {
             if (!occupied) {
                 // proteção best-effort contra over-release
@@ -33,6 +57,7 @@ public class CellLockGridMonitor implements CellLockGrid {
         }
     }
 
+    /** Matriz de monitores (1 por célula). */
     private final Cell[][] cells;
     private final int rows, cols;
 
@@ -56,6 +81,19 @@ public class CellLockGridMonitor implements CellLockGrid {
         cells[r][c].release();
     }
 
+    /**
+     * Tenta adquirir TODOS os locks do conjunto dentro do timeout total.
+     * Estratégia anti-deadlock: ordenar sempre pelo idOf(int, int).
+     * Se falhar em qualquer célula, desfaz (rollback) o que já foi adquirido.
+     *
+     * Implementação do timeout:
+     * - Calculamos um deadline = agora + timeoutMs
+     * - Para cada célula, aguardamos até o deadline, reutilizando o saldo de tempo.
+     *
+     * @param list lista de pares {r,c} a serem travados (será ORDENADA in-place)
+     * @param timeoutMs tempo total máximo (ms) para obter o conjunto
+     * @return true se obteve todas, false se falhou (com rollback feito)
+     */
     @Override
     public boolean acquireAll(List<int[]> list, long timeoutMs) throws InterruptedException {
         // Ordena por id global fixo para evitar deadlock
@@ -67,7 +105,7 @@ public class CellLockGridMonitor implements CellLockGrid {
         for (int[] p : list) {
             Cell cell = cells[p[0]][p[1]];
             if (!cell.tryAcquireUntil(deadline)) {
-                // rollback
+                // rollbac
                 for (int i = got.size() - 1; i >= 0; i--) {
                     int[] q = got.get(i);
                     cells[q[0]][q[1]].release();

@@ -1,8 +1,10 @@
 package app;
 
 import app.core.*;
+import app.model.Car;
 import app.model.RowSegment;
 import app.view.MatrixCanvas;
+import app.core.SimulationState;
 import app.view.Ui;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
@@ -12,6 +14,7 @@ import javafx.stage.Stage;
 import utils.MatrixParser;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntSupplier;
 
@@ -31,17 +34,16 @@ public class Main extends Application {
     // Controle de execução
     private InserterThread inserter;
 
+    // Mecanismo de exclusão mútua
     private CellLockGrid cellLocks;
 
-    LockMode mode = LockMode.MONITOR;
+    private LockMode currentLockMode = LockMode.SEMAPHORE;
 
     @Override
     public void start(Stage stage) throws Exception {
         // Carrega a malha
         int[][] grid = loadGridFromResources("/malhas/malha-exemplo-2.txt");
         gridRef = grid;
-
-        cellLocks = CellLockFactory.create(mode, gridRef.length, gridRef[0].length);
 
         // Canvas de desenho
         matrixCanvas = new MatrixCanvas();
@@ -51,7 +53,10 @@ public class Main extends Application {
         ui.buildLayout(stage, matrixCanvas);
         addActionListeners(ui);
 
-        // todo: testar com 30fps tbm
+        // cria os locks no modo selecionado inicialmente (padrão do ComboBox)
+        currentLockMode = resolveLockMode(ui.getCbExclusao().getValue());
+        cellLocks = CellLockFactory.create(currentLockMode, gridRef.length, gridRef[0].length);
+
         // painter: 60fps
         painter = new AnimationTimer() {
             @Override
@@ -69,27 +74,74 @@ public class Main extends Application {
         Spinner<Integer> spnIntervaloMs = ui.getSpnIntervaloMs();
         Spinner<Integer> spnMaxVeiculos = ui.getSpnMaxVeiculos();
 
-        // Fornece uma velocidade aleatória para cada carro/thread
+        // Velocidade aleatória para cada carro/thread
         IntSupplier carStepMsSupplier =  () -> 200 + ThreadLocalRandom.current().nextInt(400);
 
-        btnIniciar.setOnAction(e -> {
-            ensureInserterRunning(spnMaxVeiculos::getValue, spnIntervaloMs::getValue, carStepMsSupplier);
-            // começa/retoma a inserir respeitando o "intervalo mínimo"
+        // Atualização do mecanismo de exclusão mútua
+        ui.getCbExclusao().valueProperty().addListener((obs, oldV, newV) -> {
+            LockMode selected = resolveLockMode(newV);
+
+            // Se não mudou, não faz nada
+            if (selected == currentLockMode) return;
+
+            // encerra a simulação atual
+            stopAll();
+
+            // recria a estrutura de locks com o modo selecionado
+            currentLockMode = selected;
+            cellLocks = CellLockFactory.create(currentLockMode, gridRef.length, gridRef[0].length);
+
+            // reinicia a inserção
+            ensureInserterRunning(
+                    ui.getSpnMaxVeiculos()::getValue,
+                    ui.getSpnIntervaloMs()::getValue,
+                    () -> 200 + java.util.concurrent.ThreadLocalRandom.current().nextInt(400)
+            );
+            // @todo validação para só resumir se já estava inserindo antes da mudança
             inserter.resumeInserting();
         });
 
+        // Inicia a simulação
+        btnIniciar.setOnAction(e -> {
+            // Mapear seleção atual
+            LockMode selected = resolveLockMode(ui.getCbExclusao().getValue());
+
+            // Se há simulação em andamento e o modo mudou, reinicie para aplicar mudança
+            boolean running = (inserter != null && inserter.isAlive()) || simState.activeCount() > 0;
+            if (running && selected != currentLockMode) {
+                stopAll();
+            }
+
+            // Se o modo mudou (ou ainda não tínhamos lock), recrie os locks
+            if (selected != currentLockMode || cellLocks == null) {
+                currentLockMode = selected;
+                cellLocks = CellLockFactory.create(currentLockMode, gridRef.length, gridRef[0].length);
+            }
+
+            // Sobe o inserter
+            ensureInserterRunning(spnMaxVeiculos::getValue, spnIntervaloMs::getValue, carStepMsSupplier);
+            inserter.resumeInserting();
+        });
+
+        // Encerrar a inserção, não mata os carros que já estão rodando
         btnEncerrarInsercao.setOnAction(e -> {
             if (inserter != null) {
-                // para só a inserção, carros ativos continuam
                 inserter.stopInserting();
             }
         });
 
+        // Finaliza toda a simulação imediatamente
         btnEncerrar.setOnAction(e -> {
             stopAll();
         });
     }
 
+    /**
+     * Instancia e inicia a thread que vai gerenciar a inserção dos carros no grid
+     * @param maxCars
+     * @param minInsertMs
+     * @param carStep
+     */
     private void ensureInserterRunning(IntSupplier maxCars, IntSupplier minInsertMs, IntSupplier carStep) {
         if (inserter == null || !inserter.isAlive()) {
             inserter = new InserterThread(
@@ -97,24 +149,28 @@ public class Main extends Application {
                     simState,
                     cellLocks,
                     maxCars,
-                    // ESTE é o tempo mínimo de inserção vindo da UI
-                    minInsertMs,
+                    minInsertMs, // tempo mínimo de inserção vindo da UI
                     carStep,
-                    // Rota de entrada, passada desta maneira pois vai ser encapsulada em um supplier
-                    () -> RowSegment.findRandomEdgeSegment()
+                    () -> RowSegment.findRandomEdgeSegment() // Mecanismo para encontrar a rota de entrada
             );
             inserter.start();
         }
     }
 
+    /**
+     * Finaliza a simulação parando a inserção e finalizando todos os carros
+     */
     private void stopAll() {
         if (inserter != null) {
+            List<Car> spawned = inserter.getSpawned();
+            for (Car c: spawned) {
+                c.requestStop();
+            }
             inserter.shutdown();
             inserter = null;
         }
         matrixCanvas.clearCars();
     }
-
 
     private int[][] loadGridFromResources(String resourcePath) throws Exception {
         try (InputStream in = getClass().getResourceAsStream(resourcePath)) {
@@ -122,6 +178,16 @@ public class Main extends Application {
                 throw new IllegalStateException("Recurso não encontrado: " + resourcePath);
             return MatrixParser.readMatrix(in);
         }
+    }
+
+    /**
+     * Retorna qual tipo de mecanismo foi selecionado com base no valor do ComboBox
+     * @param uiValue
+     * @return
+     */
+    private static LockMode resolveLockMode(String uiValue) {
+        if (uiValue == null) return LockMode.SEMAPHORE;
+        return uiValue.toLowerCase().contains("monit") ? LockMode.MONITOR : LockMode.SEMAPHORE;
     }
 
     public static void main(String[] args) {
