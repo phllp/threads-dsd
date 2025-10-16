@@ -1,5 +1,6 @@
 package app.model;
 
+import app.core.CellLockGrid;
 import app.core.CellLockGridSemaphore;
 import app.model.enums.Direction;
 import app.core.SimulationState;
@@ -11,7 +12,7 @@ import java.util.List;
 
 public class Car extends Thread {
     private final SimulationState simState;
-    private final CellLockGridSemaphore locks;
+    private final CellLockGrid locks;
     private final int[][] grid;
     private final int stepMs;
 
@@ -26,7 +27,7 @@ public class Car extends Thread {
 
     public Car(SimulationState simState,
                int[][] grid,
-               CellLockGridSemaphore locks,
+               CellLockGrid locks,
                int row,
                int startCol,
                int endRow,

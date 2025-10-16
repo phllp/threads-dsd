@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 public class InserterThread extends Thread {
     private final int[][] grid;
     private final SimulationState sim;
-    private final CellLockGridSemaphore locks;
+    private final CellLockGrid locks;
 
     private final IntSupplier maxCarsSupplier;              // spnMaxVeiculos::getValue
     private final IntSupplier minInsertMsSupplier;          // spnIntervaloMs::getValue
@@ -27,7 +27,7 @@ public class InserterThread extends Thread {
 
     public InserterThread(int[][] grid,
                           SimulationState sim,
-                          CellLockGridSemaphore locks,
+                          CellLockGrid locks,
                           IntSupplier maxCarsSupplier,
                           IntSupplier minInsertMsSupplier,
                           IntSupplier carStepMsSupplier,

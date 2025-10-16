@@ -39,8 +39,6 @@ public final class RowSegment {
     /**
      * Encontra TODOS os segmentos retos válidos que começam em QUALQUER BORDA
      * na direção de entrada correspondente, e retorna UM aleatório.
-     * Mantém o mesmo conceito de “percorre enquanto a célula for a pista daquela direção
-     * ou um cruzamento”.
      */
     public static RowSegment findRandomEdgeSegment() {
         int[][] g = Main.gridRef;

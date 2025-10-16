@@ -30,9 +30,9 @@ public enum LaneCode {
     public static boolean isOnCrossroad(int codigo) {
         ArrayList<Integer> crossroads = new ArrayList<>();
         crossroads.add(LaneCode.CRUZAMENTO_CIMA.getCodigo());           // 5
-        crossroads.add(LaneCode.CRUZAMENTO_DIREITA.getCodigo());        // 6  <-- ADICIONE
+        crossroads.add(LaneCode.CRUZAMENTO_DIREITA.getCodigo());        // 6
         crossroads.add(LaneCode.CRUZAMENTO_BAIXO.getCodigo());          // 7
-        crossroads.add(LaneCode.CRUZAMENTO_ESQUERDA.getCodigo());       // 8  <-- ADICIONE
+        crossroads.add(LaneCode.CRUZAMENTO_ESQUERDA.getCodigo());       // 8
         crossroads.add(LaneCode.CRUZAMENTO_CIMA_DIREITA.getCodigo());   // 9
         crossroads.add(LaneCode.CRUZAMENTO_CIMA_ESQUERDA.getCodigo());  // 10
         crossroads.add(LaneCode.CRUZAMENTO_DIREITA_BAIXO.getCodigo());  // 11
