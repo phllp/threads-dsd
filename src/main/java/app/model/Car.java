@@ -43,7 +43,7 @@ public class Car extends Thread {
         this.endCol = endCol;
         this.stepMs = stepMs;
         this.direction = dir;
-        setName("CarThread");
+        setName("RelampagoMarquinhos-" + getId());
 
         // A thread pode ser interrompida junto com a aplicação
         setDaemon(true);

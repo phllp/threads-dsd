@@ -57,7 +57,7 @@ public class Main extends Application {
         currentLockMode = resolveLockMode(ui.getCbExclusao().getValue());
         cellLocks = CellLockFactory.create(currentLockMode, gridRef.length, gridRef[0].length);
 
-        // painter: 60fps
+        // painter: executa o método handle() aprox 60 vezes por segundo
         painter = new AnimationTimer() {
             @Override
             public void handle(long now) {
