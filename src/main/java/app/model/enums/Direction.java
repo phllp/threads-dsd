@@ -22,5 +22,17 @@ public enum Direction {
             this.laneCode = laneCode;
         }
 
+        public static Direction getDirectionFromLaneCode(int code) {
+            if (code == 1) {
+                return Direction.UP;
+            } else if (code == 2) {
+                return Direction.RIGHT;
+            } else if (code == 3) {
+                return Direction.DOWN;
+            }else {
+                return Direction.LEFT;
+            }
+        }
+
 
 }

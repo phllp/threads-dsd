@@ -172,13 +172,27 @@ public class Car extends Thread {
                             int[] p = path.get(i);
                             locks.release(p[0], p[1]);
                         }
-                        // Importante: NÃO chame releaseAll(path) aqui,
-                        // pois liberaria de novo células já liberadas durante a travessia.
                     }
 
                 }  else {
-                    //não há cruzamento, é apenas uma curva na estrada
-                    //@todo implementar isso
+                    // Continua na mesma direção: adquire próximo, atualiza posição, libera a anterior
+                    locks.acquire(nextRow, nextCol);
+                    int previousRow = row;
+                    int previousCol = col;
+
+                    row = nextRow;
+                    col = nextCol;
+
+                    // Notifica a UI/estado para redesenho com a nova posição
+                    simState.onMove(getId(), row, col);
+
+
+                    direction = Direction.getDirectionFromLaneCode(nextCode);
+
+                    // Libera a célula que ficou para trás
+                    locks.release(previousRow, previousCol);
+                    //Controle da velocidade
+                    Thread.sleep(Math.max(1, stepMs));
                 }
 
             }
